@@ -1,36 +1,12 @@
-# Build stage
-FROM node:18-alpine AS builder
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
 COPY . .
 
-# Build TypeScript code
-RUN npm run build
+RUN npm install
 
-# Production stage
-FROM node:18-alpine
+RUN npm run build --workspace=player.ms
 
-WORKDIR /src
 
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
-RUN npm install --only=production
-
-# Copy built files from builder stage
-COPY --from=builder /app/dist ./dist
-
-# Expose the port the app runs on
-EXPOSE 3001
-
-# Start the application
-CMD ["npm", "start"] 
+CMD ["npm", "start", "--workspace=player.ms"]

@@ -1,21 +1,27 @@
-import { Player } from "whalo-types";
-// import { createPlayer, getPlayerById, updatePlayer } from "../models/player.model.mongo";
+import { PlayerType } from "whalo-types";
 import {
   CreatePlayerDto,
   UpdatePlayerDto,
 } from "../api/dtos/create-player.schema";
-import PlayerRepository from "../repository/playerRepository";
+import { PlayerRepository } from "../repository/playerRepository";
 
 export class PlayerService {
-  async createPlayer(player: CreatePlayerDto): Promise<Player> {
-    const checkIfEmailExists = await PlayerRepository.findOneByEmailAndUsername(
-      player.email,
-      player.username
-    );
+  private readonly playerRepository: PlayerRepository;
+
+  constructor(playerRepositorya: PlayerRepository) {
+    this.playerRepository = playerRepositorya;
+  }
+
+  async createPlayer(player: CreatePlayerDto): Promise<PlayerType> {
+    const checkIfEmailExists =
+      await this.playerRepository.findOneByEmailAndUsername(
+        player.email,
+        player.username
+      );
     if (checkIfEmailExists) {
       throw new Error("Player with this username or email already exists");
     }
-    const playerData = await PlayerRepository.createUser({
+    const playerData = await this.playerRepository.createUser({
       username: player.username,
       email: player.email,
     });
@@ -26,10 +32,10 @@ export class PlayerService {
     };
   }
 
-  async getPlayer(playerId: string): Promise<Player | null> {
-    const player = await PlayerRepository.findById(playerId);
+  async getPlayer(playerId: string): Promise<PlayerType | null> {
+    const player = await this.playerRepository.findById(playerId);
     if (!player) {
-      return null;
+      throw { statusCode: 404, message: "Player not found" };
     }
     return {
       id: player.id,
@@ -41,13 +47,13 @@ export class PlayerService {
   async updatePlayer(
     playerId: string,
     playerData: UpdatePlayerDto
-  ): Promise<Player | null> {
-    const player = await PlayerRepository.findById(playerId);
+  ): Promise<PlayerType | null> {
+    const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw { statusCode: 404, message: "Player not found" };
     }
 
-    const checkIfUsernameExists = await PlayerRepository.findOneByUsername(
+    const checkIfUsernameExists = await this.playerRepository.findOneByUsername(
       playerData.username
     );
 
@@ -58,13 +64,13 @@ export class PlayerService {
       };
     }
 
-    const updatePlayer = await PlayerRepository.updatePlayer(playerId, {
+    const updatePlayer = await this.playerRepository.updatePlayer(playerId, {
       username: playerData.username,
     });
     if (!updatePlayer) {
       throw { statusCode: 500, message: "something went wrong" };
     }
-   
+
     return {
       id: updatePlayer.id,
       username: updatePlayer.username,
@@ -72,8 +78,8 @@ export class PlayerService {
     };
   }
 
-  async deletePlayer(playerId: string): Promise<Player | null> {
-    const playerData = await PlayerRepository.deletePlayer(playerId);
+  async deletePlayer(playerId: string): Promise<PlayerType | null> {
+    const playerData = await this.playerRepository.softDeletePlayer(playerId);
     if (!playerData) {
       return null;
     }

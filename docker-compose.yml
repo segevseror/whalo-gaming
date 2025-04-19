@@ -1,11 +1,10 @@
 version: '3.8'
 
 services:
-
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"   # AMQP protocol port
+      - "5672:5672" # AMQP protocol port
       - "15672:15672" # Management UI port
     environment:
       RABBITMQ_DEFAULT_USER: admin
@@ -27,18 +26,35 @@ services:
     networks:
       - whalo-network
 
-  wl-management:
+  player:
     build:
-      context: ./wl-management.ms
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: player.ms/Dockerfile
+    container_name: player
     environment:
-      MONGODB_URI: mongodb://admin:password@mongo:27017/whalo?authSource=admin
-      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://admin:password@mongo:27017/whalo-players?authSource=admin
     ports:
       - "3001:3001"
+    working_dir: /app
+    depends_on:
+      - mongo
+    networks:
+      - whalo-network
+
+  score:
+    build:
+      context: .
+      dockerfile: score.ms/Dockerfile
+    environment:
+      MONGODB_URI: mongodb://admin:password@mongo:27017/whalo-scores?authSource=admin
+      REDIS_URL: redis://redis:6379
+      PLAYER_URL: http://player:3001/api/player
+    ports:
+      - "3002:3002"
     depends_on:
       - redis
       - mongo
+      - rabbitmq
     networks:
       - whalo-network
 
@@ -59,3 +75,20 @@ volumes:
   mongo-data:
   redis-data:
   rabbitmq-data:
+
+
+
+  # player:
+    # build:
+    #   context: ./player.ms
+    #   dockerfile: Dockerfile
+    # environment:
+    #   MONGODB_URI: mongodb://admin:password@mongo:27017/whalo?authSource=admin
+    #   REDIS_URL: redis://redis:6379
+    # ports:
+    #   - "3001:3001"
+    # depends_on:
+    #   - redis
+    #   - mongo
+    # networks:
+    #   - whalo-network

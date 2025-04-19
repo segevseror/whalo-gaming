@@ -1,33 +1,42 @@
-import amqp from "amqplib";
-import mongoose from "mongoose";
-import { RabbitMqQueue } from "./rabbitMq";
-import { InsertScoreDto } from "../api/dtos/score.schema";
-import { getRedisClient } from "../models/db/redis.db";
+import { Channel, ConsumeMessage } from "amqplib";
+import { RabbitMqQueue } from "../utils/rabbit.mq";
+import { Logger } from "winston";
+import { RedisClientType } from "redis";
+import { ScoreType } from "whalo-types";
 
+export async function registerScoreConsumer(
+  rabbitChannel: Channel,
+  raddis: RedisClientType,
+  logger: Logger
+): Promise<void> {
+  await rabbitChannel.consume(
+    "score-queue",
+    async (msg: ConsumeMessage | null) => {
+      if (msg) {
+        const content = msg.content.toString();
+        const data: ScoreType = JSON.parse(content);
 
-import { rabbitMQ } from "../lib/helper/rabbit";
+        const redisCount = await raddis.zCard(RabbitMqQueue.SCORE_SUBMISSIONS);
+        if (redisCount === 0) {
+          //TODO: Redis is empty, fetching top players from DB
+        }
 
-export const startScoreConsumer = async () => {
-  await rabbitMQ.consume(RabbitMqQueue.SCORE_SUBMISSIONS, async (msg: any) => {
-    const content = msg.content.toString();
-    const data = JSON.parse(content);
-    console.log("📩 Received message:", data);
+        await raddis.zAdd(RabbitMqQueue.SCORE_SUBMISSIONS, [
+          { score: data.score, value: data.id },
+        ]);
 
-    const redisClient = getRedisClient();
+        const total = await raddis.zCard(RabbitMqQueue.SCORE_SUBMISSIONS);
+        if (total > 10) {
+          await raddis.zPopMin(RabbitMqQueue.SCORE_SUBMISSIONS);
+        }
 
-    // If redis is empty check in the DB the top players
-    const redisCount = await redisClient.zCard(RabbitMqQueue.SCORE_SUBMISSIONS);
-    if (redisCount === 0) {
-      //TODO: Redis is empty, fetching top players from DB
+        logger.info("consume message", {
+          data,
+        });
+
+        rabbitChannel.ack(msg);
+      }
     }
-
-    await redisClient.zAdd(RabbitMqQueue.SCORE_SUBMISSIONS, [{ score: data.score, value: data.playerId }]);
-
-    const total = await redisClient.zCard(RabbitMqQueue.SCORE_SUBMISSIONS);
-    console.log("Total players in leaderboard:", total);
-
-    if (total > 10) {
-      await redisClient.zPopMin(RabbitMqQueue.SCORE_SUBMISSIONS);
-    }
-  });
-};
+  );
+  console.log(`[Consumer] Listening to score-queue`);
+}

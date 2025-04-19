@@ -7,7 +7,8 @@ A simple TypeScript microservice with Express, following best practices and prop
 ```
 src/
 ├── app.ts              # Main application file
-├── routes/             # Route definitions
+├── index.ts            # Main application file
+├── api/                # Route definitions
 │   └── routes.ts
 ├── controllers/        # Request handlers
 │   └── mg.controller.ts
@@ -54,17 +55,3 @@ src/
    ```bash
    npm start
    ```
-
-## Example Usage
-
-Create a new user:
-```bash
-curl -X POST http://localhost:3000/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"name": "John Doe", "email": "john@example.com"}'
-```
-
-Get all users:
-```bash
-curl http://localhost:3001/api
-``` 

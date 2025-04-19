@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "name": "whalo-monorepo",
+  "version": "1.0.0",
+  "workspaces": [
+    "whalo-types",
+    "player.ms",
+    "score.ms"
+  ]
+}

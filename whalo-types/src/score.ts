@@ -1,4 +1,4 @@
-export interface TopScore {
+export interface ScoreType {
   id: string;
   score: number;
 }

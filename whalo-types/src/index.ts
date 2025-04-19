@@ -1,2 +1,2 @@
 export * from './player'; 
-export * from './top-score'; 
+export * from './score'; 

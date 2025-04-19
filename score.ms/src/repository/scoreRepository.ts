@@ -1,15 +1,17 @@
-import { ScoreModel } from "../models/score.model";
+import mongoose, { Connection } from "mongoose";
+import { createScoreModel, IScore } from "../models/score.model";
 
-class ScoreRepository {
+export class ScoreRepository {
+  private scoreModel: mongoose.Model<IScore>;
+  constructor(mongoDbConnection: Connection) {
+    this.scoreModel = createScoreModel(mongoDbConnection);
+  }
 
   async submitScore(scoreData: { playerId: string; score: number }) {
-    const user = new ScoreModel(scoreData);
-    return user.save();
+    return this.scoreModel.create(scoreData);
   }
 
   async updatePlayer(id: string, playerData: { username: string }) {
-    return await ScoreModel.findByIdAndUpdate(id, playerData, { new: true });
+    return await this.scoreModel.findByIdAndUpdate(id, playerData, { new: true });
   }
 }
-
-export default new ScoreRepository();
